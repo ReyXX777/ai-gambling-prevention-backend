@@ -6,6 +6,12 @@ const User = require('../models/User');
 // Register a new user
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
+
+  // Validate input
+  if (!name || !email || !password) {
+    return res.status(400).json({ msg: 'Please provide all required fields' });
+  }
+
   try {
     // Check if user already exists
     let user = await User.findOne({ email });
@@ -40,20 +46,27 @@ const registerUser = async (req, res) => {
       { expiresIn: '1h' },
       (err, token) => {
         if (err) throw err;
-        res.status(201).json({ token });
+        res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email } });
       }
     );
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error registering user:', error);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
 // Login a user
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
+
+  // Validate input
+  if (!email || !password) {
+    return res.status(400).json({ msg: 'Please provide all required fields' });
+  }
+
   try {
     // Check if user exists
-    let user = await User.findOne({ email });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
@@ -77,11 +90,12 @@ const loginUser = async (req, res) => {
       { expiresIn: '1h' },
       (err, token) => {
         if (err) throw err;
-        res.status(200).json({ token });
+        res.status(200).json({ token, user: { id: user.id, name: user.name, email: user.email } });
       }
     );
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error logging in user:', error);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -89,9 +103,13 @@ const loginUser = async (req, res) => {
 const getLoggedInUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error retrieving user:', error);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 

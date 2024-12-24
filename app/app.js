@@ -3,37 +3,44 @@ const dotenv = require('dotenv');
 dotenv.config();
 const authRoutes = require('./routes/authRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
-const sequelize = require('./config/database');
-const Alert = require('./models/alert');
-const resourceRouter = require('./controllers/resourceController');
-const alertRouter = require('./controllers/alertController');
-const contactRouter = require('./controllers/contactController');
-const userRouter = require('./controllers/userController');
-const achievementRouter = require('./controllers/achievementController');
+const sequelize = require('./config/db');
+const resourceRouter = require('./routes/resourceRoutes');
+const alertRouter = require('./routes/alertRoutes');
+const contactRouter = require('./routes/contactRoutes');
+const userRouter = require('./routes/userRoutes');
+const achievementRouter = require('./routes/achievementRoutes');
 
 const app = express();
+
+// Middleware
 app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api', resourceRouter);
-app.use('/api', alertRouter);
-app.use('/api', contactRouter);
+app.use('/api/resources', resourceRouter);
+app.use('/api/alerts', alertRouter);
+app.use('/api/contacts', contactRouter);
 app.use('/api/users', userRouter);
-app.use('/api', achievementRouter);
-
-// Error Handling Middleware
-app.use(errorHandler);
-
-// Database Sync
-sequelize.sync({ force: true }).then(() => {
-  console.log('Database & tables created!');
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.use('/api/achievements', achievementRouter);
 
 // Root Route
 app.get('/', (req, res) => {
   res.send('AI-Driven Cybersecurity Tool for Gambling Disorder Prevention');
 });
+
+// Error Handling Middleware
+app.use(errorHandler);
+
+// Database Sync
+sequelize
+  .sync({ force: false }) // Change `true` to `false` for production
+  .then(() => {
+    console.log('Database & tables created!');
+  })
+  .catch((error) => {
+    console.error('Error syncing database:', error);
+  });
+
+// Start Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

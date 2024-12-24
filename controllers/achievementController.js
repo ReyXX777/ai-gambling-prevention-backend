@@ -2,19 +2,23 @@
 const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
+require('dotenv').config();
 
-// Set up the PostgreSQL connection
+// Set up the PostgreSQL connection using environment variables
 const pool = new Pool({
-  user: 'yourusername',
-  host: 'localhost',
-  database: 'yourdatabase',
-  password: 'yourpassword',
-  port: 5432,
+  user: process.env.DB_USER || 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'profile',
+  password: process.env.DB_PASSWORD || 'your_password',
+  port: process.env.DB_PORT || 5432,
 });
 
 // Create a new achievement
-router.post('/achievements', async (req, res) => {
+router.post('/', async (req, res) => {
   const { title, description } = req.body;
+  if (!title || !description) {
+    return res.status(400).json({ error: 'Title and description are required' });
+  }
   try {
     const result = await pool.query(
       'INSERT INTO achievements (title, description) VALUES ($1, $2) RETURNING *',
@@ -27,7 +31,7 @@ router.post('/achievements', async (req, res) => {
 });
 
 // Get all achievements
-router.get('/achievements', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM achievements');
     res.status(200).json(result.rows);
@@ -37,7 +41,7 @@ router.get('/achievements', async (req, res) => {
 });
 
 // Get a single achievement by ID
-router.get('/achievements/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query('SELECT * FROM achievements WHERE id = $1', [id]);
@@ -51,9 +55,12 @@ router.get('/achievements/:id', async (req, res) => {
 });
 
 // Update an achievement by ID
-router.put('/achievements/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { title, description } = req.body;
+  if (!title || !description) {
+    return res.status(400).json({ error: 'Title and description are required' });
+  }
   try {
     const result = await pool.query(
       'UPDATE achievements SET title = $1, description = $2 WHERE id = $3 RETURNING *',
@@ -69,7 +76,7 @@ router.put('/achievements/:id', async (req, res) => {
 });
 
 // Delete an achievement by ID
-router.delete('/achievements/:id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query('DELETE FROM achievements WHERE id = $1 RETURNING *', [id]);

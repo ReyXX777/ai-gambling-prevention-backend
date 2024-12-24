@@ -1,19 +1,24 @@
+// controllers/alertController.js
 const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
+require('dotenv').config();
 
-// Set up the PostgreSQL connection
+// Set up the PostgreSQL connection using environment variables
 const pool = new Pool({
-  user: 'yourusername',
-  host: 'localhost',
-  database: 'yourdatabase',
-  password: 'yourpassword',
-  port: 5432,
+  user: process.env.DB_USER || 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'profile',
+  password: process.env.DB_PASSWORD || 'your_password',
+  port: process.env.DB_PORT || 5432,
 });
 
 // Create a new alert
-router.post('/alerts', async (req, res) => {
+router.post('/', async (req, res) => {
   const { title, message, type } = req.body;
+  if (!title || !message || !type) {
+    return res.status(400).json({ error: 'Title, message, and type are required' });
+  }
   try {
     const result = await pool.query(
       'INSERT INTO alerts (title, message, type) VALUES ($1, $2, $3) RETURNING *',
@@ -26,7 +31,7 @@ router.post('/alerts', async (req, res) => {
 });
 
 // Get all alerts
-router.get('/alerts', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM alerts');
     res.status(200).json(result.rows);
@@ -36,7 +41,7 @@ router.get('/alerts', async (req, res) => {
 });
 
 // Get a single alert by ID
-router.get('/alerts/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query('SELECT * FROM alerts WHERE id = $1', [id]);
@@ -50,9 +55,12 @@ router.get('/alerts/:id', async (req, res) => {
 });
 
 // Update an alert by ID
-router.put('/alerts/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { title, message, type } = req.body;
+  if (!title || !message || !type) {
+    return res.status(400).json({ error: 'Title, message, and type are required' });
+  }
   try {
     const result = await pool.query(
       'UPDATE alerts SET title = $1, message = $2, type = $3 WHERE id = $4 RETURNING *',
@@ -68,7 +76,7 @@ router.put('/alerts/:id', async (req, res) => {
 });
 
 // Delete an alert by ID
-router.delete('/alerts/:id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query('DELETE FROM alerts WHERE id = $1 RETURNING *', [id]);

@@ -1,7 +1,8 @@
 const express = require('express');
-const { register } = require('../controllers/contactController');
+const { addContact } = require('../controllers/contactController'); // Updated function name for clarity
 const router = express.Router();
 
-router.post('/register', register);
+// POST route to add a new contact
+router.post('/add', addContact); // Using a more descriptive name for the route
 
 module.exports = router;

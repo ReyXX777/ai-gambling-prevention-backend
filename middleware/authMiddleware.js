@@ -7,24 +7,31 @@ exports.authenticateToken = (req, res, next) => {
 
   // Check for the presence of the Authorization header
   if (!authHeader) {
-    return res.status(401).json({ message: 'Unauthorized: Token is missing' });
+    return res.status(401).json({ message: 'Unauthorized: Token is missing.' });
   }
 
   // Extract the token from the "Bearer" scheme
   const token = authHeader.split(' ')[1];
   if (!token) {
-    return res.status(401).json({ message: 'Unauthorized: Token is malformed' });
+    return res.status(401).json({ message: 'Unauthorized: Token is malformed.' });
   }
 
-  // Verify the token
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      console.error('Token verification error:', err);
-      return res.status(403).json({ message: 'Forbidden: Invalid or expired token' });
+  try {
+    // Verify the token and extract user data
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user; // Attach user data to the request object
+    next();
+  } catch (error) {
+    console.error('Token verification error:', error.message);
+
+    // Handle specific JWT errors
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Unauthorized: Token has expired.' });
+    } else if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Unauthorized: Invalid token.' });
     }
 
-    // Attach user data to the request object
-    req.user = user;
-    next();
-  });
+    // General error fallback
+    res.status(403).json({ message: 'Forbidden: Token verification failed.' });
+  }
 };

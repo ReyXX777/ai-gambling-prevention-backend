@@ -1,7 +1,8 @@
 const express = require('express');
-const { register } = require('../controllers/achievementController');
+const { createAchievement } = require('../controllers/achievementController');
 const router = express.Router();
 
-router.post('/register', register);
+// POST route to create a new achievement
+router.post('/achievements', createAchievement);
 
 module.exports = router;

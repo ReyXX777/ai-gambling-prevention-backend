@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
+require('dotenv').config();
 
 // Set up the PostgreSQL connection
 const pool = new Pool({
@@ -20,6 +21,12 @@ router.post('/contacts', async (req, res) => {
     return res.status(400).json({ error: 'Name, email, and phone are required' });
   }
 
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+
   try {
     const result = await pool.query(
       'INSERT INTO contacts (name, email, phone) VALUES ($1, $2, $3) RETURNING *',
@@ -27,8 +34,8 @@ router.post('/contacts', async (req, res) => {
     );
     res.status(201).json({ message: 'Contact created successfully', contact: result.rows[0] });
   } catch (error) {
-    console.error('Error creating contact:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error creating contact:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -38,8 +45,8 @@ router.get('/contacts', async (req, res) => {
     const result = await pool.query('SELECT * FROM contacts');
     res.status(200).json({ message: 'Contacts retrieved successfully', contacts: result.rows });
   } catch (error) {
-    console.error('Error retrieving contacts:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error retrieving contacts:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -54,8 +61,8 @@ router.get('/contacts/:id', async (req, res) => {
     }
     res.status(200).json({ message: 'Contact retrieved successfully', contact: result.rows[0] });
   } catch (error) {
-    console.error('Error retrieving contact:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error retrieving contact:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -69,6 +76,12 @@ router.put('/contacts/:id', async (req, res) => {
     return res.status(400).json({ error: 'Name, email, and phone are required' });
   }
 
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+
   try {
     const result = await pool.query(
       'UPDATE contacts SET name = $1, email = $2, phone = $3 WHERE id = $4 RETURNING *',
@@ -79,8 +92,8 @@ router.put('/contacts/:id', async (req, res) => {
     }
     res.status(200).json({ message: 'Contact updated successfully', contact: result.rows[0] });
   } catch (error) {
-    console.error('Error updating contact:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error updating contact:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -95,8 +108,8 @@ router.delete('/contacts/:id', async (req, res) => {
     }
     res.status(200).json({ message: 'Contact deleted successfully', contact: result.rows[0] });
   } catch (error) {
-    console.error('Error deleting contact:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error deleting contact:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

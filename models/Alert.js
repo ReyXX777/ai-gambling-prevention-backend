@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database'); // Adjust the path as necessary
 
+// Define the Alert model
 const Alert = sequelize.define('Alert', {
   id: {
     type: DataTypes.INTEGER,
@@ -9,23 +10,38 @@ const Alert = sequelize.define('Alert', {
   },
   message: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: false, // Ensure the message is required
+    validate: {
+      notEmpty: true, // Validate that the message is not empty
+    },
   },
   userId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: false, // Ensure the userId is required
     references: {
-      model: 'Users', // Name of the table in the database
-      key: 'id',
+      model: 'Users', // Refers to the 'Users' table
+      key: 'id', // Refers to the 'id' column in the 'Users' table
+    },
+    validate: {
+      isInt: true, // Ensure the userId is an integer
     },
   },
   createdAt: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    defaultValue: DataTypes.NOW, // Automatically set the current date if no date is provided
+    validate: {
+      isDate: true, // Ensure that the value is a valid date
+    },
   },
 }, {
-  tableName: 'alerts', // Name of the table in the database
-  timestamps: false,
+  tableName: 'alerts', // The name of the table in the database
+  timestamps: true, // Enable timestamps to automatically create createdAt and updatedAt fields
+  paranoid: true, // Enable soft deletes, if you want to support them in the future
+  underscored: true, // Optionally use snake_case for column names (e.g., user_id instead of userId)
 });
+
+// Associations
+// If you want to set up associations with other models, you can define them like so:
+Alert.belongsTo(User, { foreignKey: 'userId' }); // Assuming a 'User' model exists
 
 module.exports = Alert;

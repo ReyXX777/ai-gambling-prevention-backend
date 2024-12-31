@@ -1,7 +1,8 @@
 const express = require('express');
-const { register } = require('../controllers/resourceController');
+const { createResource } = require('../controllers/resourceController'); // Updated function name for clarity
 const router = express.Router();
 
-router.post('/register', register);
+// POST route to create a new resource
+router.post('/create', createResource); // Using a more descriptive name for the route
 
 module.exports = router;

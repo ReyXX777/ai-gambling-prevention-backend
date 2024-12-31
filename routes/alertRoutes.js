@@ -1,7 +1,8 @@
 const express = require('express');
-const { register } = require('../controllers/alertController');
+const { createAlert } = require('../controllers/alertController');
 const router = express.Router();
 
-router.post('/register', register);
+// POST route to create a new alert
+router.post('/alerts', createAlert);
 
 module.exports = router;

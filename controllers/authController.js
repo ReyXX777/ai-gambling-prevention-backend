@@ -1,66 +1,99 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const { createUser, findUserByEmail } = require('../models/User'); // Assuming these model functions exist
+const express = require('express');
+const router = express.Router();
+const { Pool } = require('pg');
 require('dotenv').config();
 
-// Ensure required environment variables are set
-if (!process.env.JWT_SECRET) {
-    console.error('Missing JWT_SECRET environment variable');
-    process.exit(1);
-}
+// Set up PostgreSQL connection
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+});
 
-exports.register = async (req, res) => {
-    try {
-        const { email, password, name } = req.body;
-
-        // Validate input
-        if (!email || !password || !name) {
-            return res.status(400).json({ message: 'Email, password, and name are required' });
-        }
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ message: 'Invalid email format' });
-        }
-
-        // Enforce password strength
-        if (password.length < 8) {
-            return res.status(400).json({ message: 'Password must be at least 8 characters long' });
-        }
-
-        // Check if the user already exists
-        const existingUser = await findUserByEmail(email);
-        if (existingUser) {
-            return res.status(409).json({ message: 'User with this email already exists' });
-        }
-
-        // Hash the password
-        const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10; // Defaults to 10 rounds
-        const passwordHash = await bcrypt.hash(password, saltRounds);
-
-        // Create a new user
-        const user = await createUser({ email, password: passwordHash, name });
-
-        // Generate a JWT token
-        const token = jwt.sign(
-            { id: user.id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '1d' }
-        );
-
-        // Respond with user data and token
-        res.status(201).json({
-            message: 'User registered successfully',
-            token,
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name
-            }
-        });
-    } catch (error) {
-        console.error('Error during user registration:', error.stack || error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
+// Middleware to validate comment data
+const validateComment = (req, res, next) => {
+  const { user_id, content } = req.body;
+  if (!user_id || !content) {
+    return res.status(400).json({ error: 'User ID and content are required' });
+  }
+  next();
 };
+
+// Create a new comment
+router.post('/', validateComment, async (req, res) => {
+  const { user_id, content } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO comments (user_id, content) VALUES ($1, $2) RETURNING *',
+      [user_id, content]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating comment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all comments
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM comments ORDER BY id ASC');
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get a single comment by ID
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('SELECT * FROM comments WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+    res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching comment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update a comment by ID
+router.put('/:id', validateComment, async (req, res) => {
+  const { id } = req.params;
+  const { content } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE comments SET content = $1 WHERE id = $2 RETURNING *',
+      [content, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+    res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating comment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete a comment by ID
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM comments WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+    res.status(200).json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+module.exports = router;

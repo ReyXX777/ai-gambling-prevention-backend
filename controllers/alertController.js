@@ -3,12 +3,6 @@ const router = express.Router();
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Ensure required environment variables are set
-if (!process.env.DB_USER || !process.env.DB_HOST || !process.env.DB_NAME || !process.env.DB_PASSWORD || !process.env.DB_PORT) {
-  console.error('Database environment variables are missing');
-  process.exit(1);
-}
-
 // Set up PostgreSQL connection
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -18,92 +12,93 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// Middleware to validate alert data
-const validateAlert = (req, res, next) => {
-  const { title, message, type } = req.body;
-  if (!title || !message || !type) {
-    return res.status(400).json({ error: 'Title, message, and type are required' });
+// Middleware to validate notification data
+const validateNotification = (req, res, next) => {
+  const { user_id, message, read_status } = req.body;
+  if (!user_id || !message) {
+    return res.status(400).json({ error: 'User ID and message are required' });
   }
 
-  const validTypes = ['info', 'warning', 'error'];
-  if (!validTypes.includes(type.toLowerCase())) {
-    return res.status(400).json({ error: `Type must be one of: ${validTypes.join(', ')}` });
+  const validStatuses = ['unread', 'read'];
+  if (!validStatuses.includes(read_status)) {
+    return res.status(400).json({ error: `Read status must be one of: ${validStatuses.join(', ')}` });
   }
 
   next();
 };
 
-// Create a new alert
-router.post('/', validateAlert, async (req, res) => {
-  const { title, message, type } = req.body;
+// Create a new notification
+router.post('/', validateNotification, async (req, res) => {
+  const { user_id, message, read_status } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO alerts (title, message, type) VALUES ($1, $2, $3) RETURNING *',
-      [title, message, type]
+      'INSERT INTO notifications (user_id, message, read_status) VALUES ($1, $2, $3) RETURNING *',
+      [user_id, message, read_status]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Error creating alert:', error);
+    console.error('Error creating notification:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get all alerts
-router.get('/', async (req, res) => {
+// Get all notifications for a user
+router.get('/user/:user_id', async (req, res) => {
+  const { user_id } = req.params;
   try {
-    const result = await pool.query('SELECT * FROM alerts ORDER BY id ASC');
+    const result = await pool.query('SELECT * FROM notifications WHERE user_id = $1 ORDER BY id ASC', [user_id]);
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Error fetching alerts:', error);
+    console.error('Error fetching notifications:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get a single alert by ID
+// Get a single notification by ID
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query('SELECT * FROM alerts WHERE id = $1', [id]);
+    const result = await pool.query('SELECT * FROM notifications WHERE id = $1', [id]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Alert not found' });
+      return res.status(404).json({ error: 'Notification not found' });
     }
     res.status(200).json(result.rows[0]);
   } catch (error) {
-    console.error('Error fetching alert:', error);
+    console.error('Error fetching notification:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Update an alert by ID
-router.put('/:id', validateAlert, async (req, res) => {
+// Update a notification by ID
+router.put('/:id', validateNotification, async (req, res) => {
   const { id } = req.params;
-  const { title, message, type } = req.body;
+  const { message, read_status } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE alerts SET title = $1, message = $2, type = $3 WHERE id = $4 RETURNING *',
-      [title, message, type, id]
+      'UPDATE notifications SET message = $1, read_status = $2 WHERE id = $3 RETURNING *',
+      [message, read_status, id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Alert not found' });
+      return res.status(404).json({ error: 'Notification not found' });
     }
     res.status(200).json(result.rows[0]);
   } catch (error) {
-    console.error('Error updating alert:', error);
+    console.error('Error updating notification:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Delete an alert by ID
+// Delete a notification by ID
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query('DELETE FROM alerts WHERE id = $1 RETURNING *', [id]);
+    const result = await pool.query('DELETE FROM notifications WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Alert not found' });
+      return res.status(404).json({ error: 'Notification not found' });
     }
-    res.status(200).json({ message: 'Alert deleted successfully' });
+    res.status(200).json({ message: 'Notification deleted successfully' });
   } catch (error) {
-    console.error('Error deleting alert:', error);
+    console.error('Error deleting notification:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

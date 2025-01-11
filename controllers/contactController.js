@@ -3,7 +3,7 @@ const router = express.Router();
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Set up the PostgreSQL connection
+// Set up PostgreSQL connection
 const pool = new Pool({
   user: process.env.DB_USER || 'yourusername',
   host: process.env.DB_HOST || 'localhost',
@@ -12,103 +12,92 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
-// Create a new contact
-router.post('/contacts', async (req, res) => {
-  const { name, email, phone } = req.body;
-
-  // Validate input
-  if (!name || !email || !phone) {
-    return res.status(400).json({ error: 'Name, email, and phone are required' });
+// Middleware to validate task data
+const validateTask = (req, res, next) => {
+  const { title, description, status } = req.body;
+  if (!title || !description) {
+    return res.status(400).json({ error: 'Title and description are required' });
   }
 
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ error: 'Invalid email format' });
+  const validStatuses = ['pending', 'in-progress', 'completed'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: `Status must be one of: ${validStatuses.join(', ')}` });
   }
 
+  next();
+};
+
+// Create a new task
+router.post('/tasks', validateTask, async (req, res) => {
+  const { title, description, status } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO contacts (name, email, phone) VALUES ($1, $2, $3) RETURNING *',
-      [name, email, phone]
+      'INSERT INTO tasks (title, description, status) VALUES ($1, $2, $3) RETURNING *',
+      [title, description, status]
     );
-    res.status(201).json({ message: 'Contact created successfully', contact: result.rows[0] });
+    res.status(201).json({ message: 'Task created successfully', task: result.rows[0] });
   } catch (error) {
-    console.error('Error creating contact:', error.message);
+    console.error('Error creating task:', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get all contacts
-router.get('/contacts', async (req, res) => {
+// Get all tasks
+router.get('/tasks', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM contacts');
-    res.status(200).json({ message: 'Contacts retrieved successfully', contacts: result.rows });
+    const result = await pool.query('SELECT * FROM tasks ORDER BY id ASC');
+    res.status(200).json({ message: 'Tasks retrieved successfully', tasks: result.rows });
   } catch (error) {
-    console.error('Error retrieving contacts:', error.message);
+    console.error('Error retrieving tasks:', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get a single contact by ID
-router.get('/contacts/:id', async (req, res) => {
+// Get a single task by ID
+router.get('/tasks/:id', async (req, res) => {
   const { id } = req.params;
-
   try {
-    const result = await pool.query('SELECT * FROM contacts WHERE id = $1', [id]);
+    const result = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Contact not found' });
+      return res.status(404).json({ error: 'Task not found' });
     }
-    res.status(200).json({ message: 'Contact retrieved successfully', contact: result.rows[0] });
+    res.status(200).json({ message: 'Task retrieved successfully', task: result.rows[0] });
   } catch (error) {
-    console.error('Error retrieving contact:', error.message);
+    console.error('Error retrieving task:', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Update a contact by ID
-router.put('/contacts/:id', async (req, res) => {
+// Update a task by ID
+router.put('/tasks/:id', validateTask, async (req, res) => {
   const { id } = req.params;
-  const { name, email, phone } = req.body;
-
-  // Validate input
-  if (!name || !email || !phone) {
-    return res.status(400).json({ error: 'Name, email, and phone are required' });
-  }
-
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ error: 'Invalid email format' });
-  }
-
+  const { title, description, status } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE contacts SET name = $1, email = $2, phone = $3 WHERE id = $4 RETURNING *',
-      [name, email, phone, id]
+      'UPDATE tasks SET title = $1, description = $2, status = $3 WHERE id = $4 RETURNING *',
+      [title, description, status, id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Contact not found' });
+      return res.status(404).json({ error: 'Task not found' });
     }
-    res.status(200).json({ message: 'Contact updated successfully', contact: result.rows[0] });
+    res.status(200).json({ message: 'Task updated successfully', task: result.rows[0] });
   } catch (error) {
-    console.error('Error updating contact:', error.message);
+    console.error('Error updating task:', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Delete a contact by ID
-router.delete('/contacts/:id', async (req, res) => {
+// Delete a task by ID
+router.delete('/tasks/:id', async (req, res) => {
   const { id } = req.params;
-
   try {
-    const result = await pool.query('DELETE FROM contacts WHERE id = $1 RETURNING *', [id]);
+    const result = await pool.query('DELETE FROM tasks WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Contact not found' });
+      return res.status(404).json({ error: 'Task not found' });
     }
-    res.status(200).json({ message: 'Contact deleted successfully', contact: result.rows[0] });
+    res.status(200).json({ message: 'Task deleted successfully', task: result.rows[0] });
   } catch (error) {
-    console.error('Error deleting contact:', error.message);
+    console.error('Error deleting task:', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

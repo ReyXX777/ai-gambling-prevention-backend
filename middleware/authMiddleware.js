@@ -35,3 +35,20 @@ exports.authenticateToken = (req, res, next) => {
     res.status(403).json({ message: 'Forbidden: Token verification failed.' });
   }
 };
+
+// Middleware to log authentication attempts
+exports.authLogger = (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] Authentication attempt: ${req.method} ${req.url}`);
+  next();
+};
+
+// Middleware to check user role (e.g., admin)
+exports.checkRole = (role) => {
+  return (req, res, next) => {
+    if (req.user && req.user.role === role) {
+      next();
+    } else {
+      res.status(403).json({ message: 'Forbidden: Insufficient permissions.' });
+    }
+  };
+};

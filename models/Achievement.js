@@ -36,6 +36,22 @@ const Achievement = sequelize.define('Achievement', {
       isInt: true, // Ensure the userId is an integer
     },
   },
+  status: {
+    type: DataTypes.ENUM('pending', 'completed', 'archived'), // Added new field for achievement status
+    defaultValue: 'pending', // Default status is 'pending'
+    allowNull: false,
+    validate: {
+      notEmpty: true, // Ensure the status is not empty
+    },
+  },
+  priority: {
+    type: DataTypes.ENUM('low', 'medium', 'high'), // Added new field for achievement priority
+    defaultValue: 'medium', // Default priority is 'medium'
+    allowNull: false,
+    validate: {
+      notEmpty: true, // Ensure the priority is not empty
+    },
+  },
 }, {
   tableName: 'achievements', // The name of the table in the database
   timestamps: true, // Enable timestamps (createdAt and updatedAt)

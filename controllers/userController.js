@@ -113,9 +113,27 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+// Middleware to log authentication actions
+const authLogger = (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] Auth action: ${req.method} ${req.url}`);
+  next();
+};
+
+// Middleware to validate email format
+const validateEmail = (req, res, next) => {
+  const { email } = req.body;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ msg: 'Invalid email format.' });
+  }
+  next();
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getLoggedInUser,
   verifyToken,
+  authLogger,
+  validateEmail,
 };

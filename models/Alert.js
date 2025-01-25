@@ -33,6 +33,19 @@ const Alert = sequelize.define('Alert', {
       isDate: true, // Ensure that the value is a valid date
     },
   },
+  severity: {
+    type: DataTypes.ENUM('low', 'medium', 'high'), // Added new field for alert severity
+    defaultValue: 'medium', // Default severity is 'medium'
+    allowNull: false,
+    validate: {
+      notEmpty: true, // Ensure the severity is not empty
+    },
+  },
+  isRead: {
+    type: DataTypes.BOOLEAN, // Added new field to track if the alert has been read
+    defaultValue: false, // Default value is false (unread)
+    allowNull: false,
+  },
 }, {
   tableName: 'alerts', // The name of the table in the database
   timestamps: true, // Enable timestamps to automatically create createdAt and updatedAt fields

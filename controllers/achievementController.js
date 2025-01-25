@@ -21,8 +21,29 @@ const validateComment = (req, res, next) => {
   next();
 };
 
+// Middleware to log incoming requests
+const requestLogger = (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+};
+
+// Middleware to check if achievement exists
+const checkAchievementExists = async (req, res, next) => {
+  const { achievement_id } = req.body;
+  try {
+    const result = await pool.query('SELECT * FROM achievements WHERE id = $1', [achievement_id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Achievement not found' });
+    }
+    next();
+  } catch (error) {
+    console.error('Error checking achievement:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // Create a new comment
-router.post('/', validateComment, async (req, res) => {
+router.post('/', validateComment, checkAchievementExists, async (req, res) => {
   const { comment_text, achievement_id } = req.body;
   try {
     const result = await pool.query(

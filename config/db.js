@@ -41,9 +41,31 @@ sequelize.authenticate()
         console.error('Sequelize connection error:', err);
     });
 
+// Added new component: Database health check function
+const checkDatabaseHealth = async () => {
+    try {
+        await pool.query('SELECT NOW()');
+        console.log('Database health check: OK');
+    } catch (error) {
+        console.error('Database health check failed:', error);
+    }
+};
+
+// Added new component: Database query logger middleware
+const queryLogger = (req, res, next) => {
+    const originalQuery = pool.query;
+    pool.query = (text, params) => {
+        console.log('Executing query:', text);
+        return originalQuery(text, params);
+    };
+    next();
+};
+
 // Export both pool and Sequelize instance for usage in the app
 module.exports = {
     pool, // For direct query access
     query: (text, params) => pool.query(text, params), // Helper for executing pool queries
     sequelize, // For ORM functionality
+    checkDatabaseHealth, // Added new component
+    queryLogger, // Added new component
 };

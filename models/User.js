@@ -15,6 +15,24 @@ const validateUserInput = (user) => {
     }
 };
 
+// Middleware to log user creation attempts
+const logUserCreation = (user) => {
+    console.log(`[${new Date().toISOString()}] User creation attempt: ${user.email}`);
+};
+
+// Middleware to check if user already exists
+const checkUserExists = async (email) => {
+    try {
+        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (result.rows.length > 0) {
+            throw new Error('User with this email already exists.');
+        }
+    } catch (error) {
+        console.error('Error checking user existence:', error);
+        throw new Error('Error checking user existence: ' + error.message);
+    }
+};
+
 // Create a new user in the database
 const createUser = async (user) => {
     try {
@@ -22,6 +40,12 @@ const createUser = async (user) => {
         validateUserInput(user);
 
         const { email, passwordHash, name } = user;
+
+        // Check if user already exists
+        await checkUserExists(email);
+
+        // Log user creation attempt
+        logUserCreation(user);
 
         // Perform the database query
         const result = await pool.query(

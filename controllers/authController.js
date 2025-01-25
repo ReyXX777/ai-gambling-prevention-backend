@@ -21,8 +21,29 @@ const validateComment = (req, res, next) => {
   next();
 };
 
+// Middleware to log comment actions
+const commentLogger = (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] Comment action: ${req.method} ${req.url}`);
+  next();
+};
+
+// Middleware to check if user exists
+const checkUserExists = async (req, res, next) => {
+  const { user_id } = req.body;
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [user_id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    next();
+  } catch (error) {
+    console.error('Error checking user:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // Create a new comment
-router.post('/', validateComment, async (req, res) => {
+router.post('/', validateComment, checkUserExists, async (req, res) => {
   const { user_id, content } = req.body;
   try {
     const result = await pool.query(
@@ -37,7 +58,7 @@ router.post('/', validateComment, async (req, res) => {
 });
 
 // Get all comments
-router.get('/', async (req, res) => {
+router.get('/', commentLogger, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM comments ORDER BY id ASC');
     res.status(200).json(result.rows);
@@ -48,7 +69,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get a single comment by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', commentLogger, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query('SELECT * FROM comments WHERE id = $1', [id]);
@@ -82,7 +103,7 @@ router.put('/:id', validateComment, async (req, res) => {
 });
 
 // Delete a comment by ID
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', commentLogger, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query('DELETE FROM comments WHERE id = $1 RETURNING *', [id]);

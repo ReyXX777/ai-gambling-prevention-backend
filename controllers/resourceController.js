@@ -12,8 +12,24 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
+// Middleware to log profile actions
+const profileLogger = (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] Profile action: ${req.method} ${req.url}`);
+  next();
+};
+
+// Middleware to validate phone number format
+const validatePhoneNumber = (req, res, next) => {
+  const { phone } = req.body;
+  const phoneRegex = /^\d{10}$/; // Assumes a 10-digit phone number format
+  if (!phoneRegex.test(phone)) {
+    return res.status(400).json({ error: 'Invalid phone number format. Must be 10 digits.' });
+  }
+  next();
+};
+
 // Create a new user profile
-router.post('/profiles', async (req, res) => {
+router.post('/profiles', validatePhoneNumber, async (req, res) => {
   const { user_id, first_name, last_name, email, phone } = req.body;
 
   // Input validation
@@ -40,7 +56,7 @@ router.post('/profiles', async (req, res) => {
 });
 
 // Get all user profiles
-router.get('/profiles', async (req, res) => {
+router.get('/profiles', profileLogger, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM user_profiles ORDER BY first_name ASC');
     res.status(200).json({ message: 'Profiles retrieved successfully', profiles: result.rows });
@@ -51,7 +67,7 @@ router.get('/profiles', async (req, res) => {
 });
 
 // Get a single user profile by user ID
-router.get('/profiles/:user_id', async (req, res) => {
+router.get('/profiles/:user_id', profileLogger, async (req, res) => {
   const { user_id } = req.params;
 
   try {
@@ -67,7 +83,7 @@ router.get('/profiles/:user_id', async (req, res) => {
 });
 
 // Update a user profile by user ID
-router.put('/profiles/:user_id', async (req, res) => {
+router.put('/profiles/:user_id', validatePhoneNumber, async (req, res) => {
   const { user_id } = req.params;
   const { first_name, last_name, email, phone } = req.body;
 
@@ -98,7 +114,7 @@ router.put('/profiles/:user_id', async (req, res) => {
 });
 
 // Delete a user profile by user ID
-router.delete('/profiles/:user_id', async (req, res) => {
+router.delete('/profiles/:user_id', profileLogger, async (req, res) => {
   const { user_id } = req.params;
 
   try {

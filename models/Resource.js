@@ -20,8 +20,29 @@ const validateResourceInput = (req, res, next) => {
   next();
 };
 
+// Middleware to log resource actions
+const resourceLogger = (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] Resource action: ${req.method} ${req.url}`);
+  next();
+};
+
+// Middleware to check if resource exists
+const checkResourceExists = async (req, res, next) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('SELECT * FROM resources WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
+    next();
+  } catch (error) {
+    console.error('Error checking resource:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 // Create a new resource
-router.post('/resources', validateResourceInput, async (req, res) => {
+router.post('/resources', validateResourceInput, resourceLogger, async (req, res) => {
   const { name, type, description } = req.body;
   try {
     const result = await pool.query(
@@ -36,7 +57,7 @@ router.post('/resources', validateResourceInput, async (req, res) => {
 });
 
 // Get all resources
-router.get('/resources', async (req, res) => {
+router.get('/resources', resourceLogger, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM resources');
     res.status(200).json({ resources: result.rows });
@@ -47,13 +68,10 @@ router.get('/resources', async (req, res) => {
 });
 
 // Get a single resource by ID
-router.get('/resources/:id', async (req, res) => {
+router.get('/resources/:id', resourceLogger, checkResourceExists, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query('SELECT * FROM resources WHERE id = $1', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Resource not found' });
-    }
     res.status(200).json({ resource: result.rows[0] });
   } catch (error) {
     console.error('Error retrieving resource:', error);
@@ -62,7 +80,7 @@ router.get('/resources/:id', async (req, res) => {
 });
 
 // Update a resource by ID
-router.put('/resources/:id', validateResourceInput, async (req, res) => {
+router.put('/resources/:id', validateResourceInput, resourceLogger, checkResourceExists, async (req, res) => {
   const { id } = req.params;
   const { name, type, description } = req.body;
   try {
@@ -70,9 +88,6 @@ router.put('/resources/:id', validateResourceInput, async (req, res) => {
       'UPDATE resources SET name = $1, type = $2, description = $3 WHERE id = $4 RETURNING *',
       [name, type, description, id]
     );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Resource not found' });
-    }
     res.status(200).json({ message: 'Resource updated successfully', resource: result.rows[0] });
   } catch (error) {
     console.error('Error updating resource:', error);
@@ -81,13 +96,10 @@ router.put('/resources/:id', validateResourceInput, async (req, res) => {
 });
 
 // Delete a resource by ID
-router.delete('/resources/:id', async (req, res) => {
+router.delete('/resources/:id', resourceLogger, checkResourceExists, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query('DELETE FROM resources WHERE id = $1 RETURNING *', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Resource not found' });
-    }
     res.status(200).json({ message: 'Resource deleted successfully' });
   } catch (error) {
     console.error('Error deleting resource:', error);

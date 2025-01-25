@@ -9,6 +9,8 @@ const alertRouter = require('./routes/alertRoutes');
 const contactRouter = require('./routes/contactRoutes');
 const userRouter = require('./routes/userRoutes');
 const achievementRouter = require('./routes/achievementRoutes');
+const notificationRouter = require('./routes/notificationRoutes'); // Added new component
+const analyticsRouter = require('./routes/analyticsRoutes'); // Added new component
 
 const app = express();
 
@@ -22,6 +24,8 @@ app.use('/api/alerts', alertRouter);
 app.use('/api/contacts', contactRouter);
 app.use('/api/users', userRouter);
 app.use('/api/achievements', achievementRouter);
+app.use('/api/notifications', notificationRouter); // Added new route
+app.use('/api/analytics', analyticsRouter); // Added new route
 
 // Root Route
 app.get('/', (req, res) => {

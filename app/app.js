@@ -9,8 +9,11 @@ const alertRouter = require('./routes/alertRoutes');
 const contactRouter = require('./routes/contactRoutes');
 const userRouter = require('./routes/userRoutes');
 const achievementRouter = require('./routes/achievementRoutes');
-const notificationRouter = require('./routes/notificationRoutes'); // Added new component
-const analyticsRouter = require('./routes/analyticsRoutes'); // Added new component
+const notificationRouter = require('./routes/notificationRoutes');
+const analyticsRouter = require('./routes/analyticsRoutes');
+const paymentRouter = require('./routes/paymentRoutes'); // Added new component
+const supportRouter = require('./routes/supportRoutes'); // Added new component
+
 
 const app = express();
 
@@ -24,8 +27,10 @@ app.use('/api/alerts', alertRouter);
 app.use('/api/contacts', contactRouter);
 app.use('/api/users', userRouter);
 app.use('/api/achievements', achievementRouter);
-app.use('/api/notifications', notificationRouter); // Added new route
-app.use('/api/analytics', analyticsRouter); // Added new route
+app.use('/api/notifications', notificationRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/payments', paymentRouter); // Added new route
+app.use('/api/support', supportRouter); // Added new route
 
 // Root Route
 app.get('/', (req, res) => {

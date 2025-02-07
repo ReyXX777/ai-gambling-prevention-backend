@@ -49,9 +49,9 @@ const createUser = async (user) => {
 
         // Perform the database query
         const result = await pool.query(
-            `INSERT INTO users (email, password_hash, name) 
-             VALUES ($1, $2, $3) 
-             RETURNING *`,
+            `INSERT INTO users (email, password_hash, name) 
+                     VALUES ($1, $2, $3) 
+                     RETURNING *`,
             [email, passwordHash, name]
         );
 
@@ -66,4 +66,25 @@ const createUser = async (user) => {
     }
 };
 
-module.exports = { createUser };
+// Added Middleware: Input Sanitization
+const sanitizeInput = (user) => {
+    if (user.name) {
+        user.name = user.name.trim();
+        user.name = user.name.replace(/<[^>]*>?/gm, ''); // Remove HTML tags
+    }
+    if (user.email) {
+        user.email = user.email.trim();
+    }
+    return user;
+};
+
+// Added Middleware: Password Strength Check
+const checkPasswordStrength = (password) => {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/; // Example regex
+    if (!passwordRegex.test(password)) {
+        throw new Error('Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character.');
+    }
+};
+
+
+module.exports = { createUser, sanitizeInput, checkPasswordStrength };

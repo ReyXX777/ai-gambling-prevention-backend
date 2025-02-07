@@ -61,6 +61,36 @@ const queryLogger = (req, res, next) => {
     next();
 };
 
+// Added new component: Connection pool metrics
+const getConnectionPoolMetrics = () => {
+    const totalConnections = pool.totalCount;
+    const idleConnections = pool.idleCount;
+    const waitingClients = pool.waitingCount;
+
+    return {
+        totalConnections,
+        idleConnections,
+        waitingClients,
+    };
+};
+
+// Added new component:  Slow Query Logger
+const slowQueryLogger = (req, res, next) => {
+    const startTime = Date.now();
+
+    res.on('finish', () => {
+        const endTime = Date.now();
+        const elapsedTime = endTime - startTime;
+
+        if (elapsedTime > 500) { // Example threshold: 500ms
+            console.warn(`Slow query: ${req.originalUrl} took ${elapsedTime}ms`);
+        }
+    });
+
+    next();
+};
+
+
 // Export both pool and Sequelize instance for usage in the app
 module.exports = {
     pool, // For direct query access
@@ -68,4 +98,6 @@ module.exports = {
     sequelize, // For ORM functionality
     checkDatabaseHealth, // Added new component
     queryLogger, // Added new component
+    getConnectionPoolMetrics, // Added new component
+    slowQueryLogger, // Added new component
 };
